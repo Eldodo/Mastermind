@@ -1,15 +1,19 @@
-(ns mastermind.jeu
-  (:gen-class))
+(ns mastermind.util
+  (:gen-class)
+  (:use [clojure.string]))
+
 
 ;; ## code secret
 
 (declare code-secret)
 
+(def colors #{:rouge :bleu :vert :jaune :noir :blanc})
+
 (defn code-secret [n]
   (loop [i n res []]
     (if (zero? i)
       res
-      (recur (dec i) (conj res (rand-nth [:rouge :bleu :vert :jaune :noir :blanc]))))))
+      (recur (dec i) (conj res (rand-nth (seq colors)))))))
 
 
 
@@ -84,14 +88,97 @@
             (recur (rest code) (rest essai) (rest indic) (assoc freq (first essai) (dec (get freq (first essai)))) (conj res :color)))))
       res)))
 
+;; ## parseInt
 
 (declare parse-int)
-
 (defn parse-int [s]
   (try
     (Integer. (re-find  #"\d+" s ))
     (catch NumberFormatException e (Integer. 0))))
 
+;; ## color to string
 
+(declare color-to-str)
 
+(defn color-to-str [color]
+  (case color
+    :rouge "rouge"
+    :bleu "bleu"
+    :blanc "blanc"
+    :noir "noir"
+    :jaune "jaune"
+    :vert "vert"
+     "default"))
+(defn str-to-color [str]
+  (case str
+    "rouge" :rouge
+    "bleu" :bleu
+    "blanc" :blanc
+    "noir" :noir
+    "jaune" :jaune
+    "vert" :vert
+    nil))
 
+;; ## affiche code
+
+(declare affiche-code)
+
+(defn affiche-code [code]
+  (print "[")
+  (loop [code code]
+    (if (seq code)
+      (do
+        (if (seq (rest code))
+          (print (color-to-str (first code))" ")
+          (print (color-to-str (first code))))
+        (recur (rest code)))
+      (println "]"))))
+
+(declare verif-essai)
+
+(defn verif-essai [essai]
+  (loop [essai essai res []]
+    (if (seq essai)
+      (if (str-to-color (first essai))
+        (recur (rest essai) (conj res (str-to-color (first essai))))
+        nil)
+      res)))
+
+(declare demande-essai)
+
+(defn demande-essai [taille]
+  (println "Veuillez entrer une combinaison de"taille"couleurs rouge, vert, jaune, bleu, noir et blanc:")
+  (loop [essai (split (read-line) #" ")]
+    (if (= taille (count essai))
+      (let [res (verif-essai essai)]
+        (if (seq res)
+          res
+          (do (println "Essai non valide. Réessayez:")
+            (recur (split (read-line) #" ")))))
+      (do (println "Essai non valide. Réessayez:")
+        (recur (split (read-line) #" "))))))
+
+(declare correcte)
+(defn correcte [indic]
+  (loop [i indic]
+    (if (seq i)
+      (if (= (first i) :good)
+        (recur (rest i))
+        false)
+      true)))
+
+(declare affiche-indic)
+(defn affiche-indic [indic]
+  (print "[")
+  (loop [i indic]
+    (if (seq i)
+      (do
+        (case (first i)
+          :good (print "good")
+          :color (print "color")
+          :bad (print "bad"))
+        (if (seq (rest i))
+          (print " ")
+          ())
+        (recur (rest i)))
+      (println "]"))))

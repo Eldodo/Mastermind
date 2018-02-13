@@ -1,5 +1,6 @@
-(ns mastermind.core
-  (:use [mastermind.jeu :as jeu])
+(ns mastermind.main
+  (:use [mastermind.util])
+  (:use [mastermind.game])
   (:gen-class))
 
 (defn lire-entier []
@@ -17,9 +18,6 @@
   (println "Saisir la taille du code secret a deviner:")
   (def val (lire-entier))
   (println(format "Le code est de taille %d." val))
+  (def code (code-secret val))
+  (mastermind code 2)
 )
-
-
-
-
-
