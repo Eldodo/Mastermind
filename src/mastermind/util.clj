@@ -1,6 +1,6 @@
 (ns mastermind.util
   (:gen-class)
-  (:use [clojure.string])
+ (:use [clojure.string :only (split)])
   (:use [midje.sweet]))
 
 
@@ -313,16 +313,6 @@
       (println "]"))))
 
 
-
-;; # test pour affiche-code (qui ne retourne rien)
-
-(fact "affiche-code retourne bien aucune valeur"
-      (affiche-code [:rouge])
-      => nil)
-
-
-
-
 ;; ## verif-essai, prend un essai en entrée et retourne nil si le format est incorrect, sinon retourne l'essai en convertissant les string en "color"
 
 (declare verif-essai)
@@ -411,16 +401,13 @@
         (recur (rest i)))
       (println "]"))))
 
-;; # test pour affiche-indic (qui ne retourne rien)
 
-(fact "affiche-indic retourne bien aucune valeur"
-      (affiche-indic [:good])
-      => nil)
 
-;; #### suite fonction pour solveur uniquement
 
-;; ## vecset, retourne un vecteur de taille n avec n fois l'ensemble
-;; ## colors (= #{:rouge :bleu :vert :jaune :noir :blanc})
+;; #### suite : fonctions pour solveur uniquement
+
+;; ## vecset, retourne un vecteur de taille n avec n fois l'ensemble colors
+;; ## colors = #{:rouge :bleu :vert :jaune :noir :blanc}
 ;; ## colors est défini au début de ce fichier
 
 (declare vecset)
@@ -475,19 +462,35 @@
       => true)
 
 
+
+
 ;; ## majvecset, met à jour un vecset à partir d'un essai, d'une indication et d'une freq-dispo
 
 (declare majvecset)
 
-(defn majvecset [vecset essai indic freqs-disp]
-  (loop [vecset vecset essai essai indic indic fq freqs-disp res []]
+(defn majvecset [vecset essai indic]
+  (loop [vecset vecset essai essai indic indic res []]
     (if (seq vecset)
       (if (= (first indic) :good)
-        (recur (rest vecset) (rest essai) (rest indic) fq (conj res (set (keep (first vecset) (first essai))))) ;;cas :good
-        (if (= (first indic) :color)
-          (recur (rest vecset) (rest essai) (rest indic) fq (conj res (set (remove (first essai) (first vecset))))) ;; cas :color
-          ))))) ;; à finir faire le cas bad
+        (recur (rest vecset) (rest essai) (rest indic) (conj res (set (keep (first vecset) (conj #{} (first essai)))))) ;;cas :good, on ne garde que cette couleur dans (first vecset)
+        (recur (rest vecset) (rest essai) (rest indic) (conj res (set (remove (conj #{} (first essai)) (first vecset)))))) ;; cas autre on retire cette couleur dans (first vecset)
+      res)))
 
+
+
+;; ## lire-code, lit un code donné par l'utilisateur en vérifiant son format et retourne le code convertit en color
+
+(declare lire-code)
+
+(defn lire-code []
+  (println "Veuillez entrer une combinaison de couleurs rouge, vert, jaune, bleu, noir et blanc:")
+  (loop [code (split (read-line) #" ")]
+     (let [res (verif-essai code)] ;; on peut utiliser cette fonction pour verifier la validité du code donné et récupérer le code convertit en color
+       (if (seq res) ;; if res != nul
+          res ;; cas code valide, retourne res
+         (do
+           (println "Code non valide. Réessayez:")
+           (recur (split (read-line) #" ")))))));; code non valide demande une nouvelle saisie
 
 
 
