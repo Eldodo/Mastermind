@@ -1,11 +1,13 @@
 (ns mastermind.util
   (:gen-class)
-  (:use [clojure.string]))
+  (:use [clojure.string])
+  (:use [midje.sweet]))
 
 
 ;; ## les différentes couleurs possibles
 
 (def colors #{:rouge :bleu :vert :jaune :noir :blanc})
+
 
 ;; ## code secret, retourne un code secret de taille n coposé des couleurs présentes dans colors
 
@@ -16,6 +18,27 @@
     (if (zero? i)
       res
       (recur (dec i) (conj res (rand-nth (seq colors)))))))
+
+;; # test pour code-secret
+
+(fact "Le `code-secret` est bien composé de couleurs."
+      (every? colors
+              (code-secret 4))
+      => true)
+
+(fact "Le `code-secret` est bien composé de couleurs."
+      (every? colors
+              (code-secret 8))
+      => true)
+
+(fact "Le `code-secret` a l'air aléatoire."
+      (> (count (filter true? (map not=
+                                   (repeatedly 20 #(code-secret 5))
+                                   (repeatedly 20 #(code-secret 6))
+                                   (repeatedly 20 #(code-secret 6)))))
+         0)
+      => true)
+
 
 
 
@@ -28,6 +51,18 @@
         true
         (recur (rest v)))
       false)))
+
+;; # test pour contient?
+
+(fact "Contient? retourne bien true si l'élément est présent"
+      (= (contient? [1 2 3 4 5 6 7] 5) true)
+      => true)
+
+(fact "Contient? retourne bien false si l'élément est absent"
+      (= (contient? [1 2 3 4 5 6 7] "bonjour") false)
+      => true)
+
+
 
 
 ;; ## indications, retourne l'indication correspondant à l'essai (ess)
@@ -46,6 +81,37 @@
             (recur (inc i) (conj res :bad))))))
     nil))
 
+;; # test pour indications
+
+
+(fact "`indications` sont les bonnes."
+      (indications [:rouge :rouge :vert]
+                   [:vert :rouge :bleu :jaune])
+      => nil
+
+      (indications [:rouge :rouge :vert :bleu]
+                   [:bleu :rouge :vert :jaune])
+      => [:color :good :good :bad]
+
+      (indications [:rouge :rouge :vert :bleu]
+                   [:rouge :rouge :vert :bleu])
+      => [:good :good :good :good]
+
+      (indications [:rouge :rouge :vert :vert]
+                   [:vert :bleu :rouge :jaune])
+      => [:color :bad :color :bad]
+
+       (indications [:rouge :rouge :vert :vert]
+                   [:vert])
+      => nil
+
+      (indications [:rouge :violet :vert  :vert  :jaune :orange 0      "bonjour"]
+                   [:vert  :bleu   :rouge :jaune :rouge :blanc  :vert  "bonjour"])
+      =>           [:color :bad    :color :color :color :bad    :color :good])
+
+
+
+
 ;; ## fréquences, retourne une map qui a pour clé chaque élément distinct de v et lui associe pour valeur son nombre d'occurence dans v
 
 (declare frequences)
@@ -57,6 +123,23 @@
         (recur (rest v) (assoc res (first v) (inc (get res (first v)))))
         (recur (rest v) (assoc res (first v) 1)))
       res)))
+
+;; # test pour frequences
+
+(fact "les `frequences` suivantes sont correctes."
+      (frequences [:rouge :rouge :vert :bleu :vert :rouge])
+      => {:rouge 3 :vert 2 :bleu 1}
+
+      (frequences [:rouge :vert :bleu])
+      => {:rouge 1 :vert 1 :bleu 1}
+
+      (frequences [1 2 3 2 1 4]) => {1 2, 2 2, 3 1, 4 1}
+
+      (frequences [:rouge :vert :bleu "bonjour" 5 {}])
+      => {:rouge 1 :vert 1 :bleu 1 "bonjour" 1 5 1 {} 1})
+
+
+
 
 ;; ## freqs-dispo, retourne une map qui associe à chaque couleur du code sa fréquence disponible par rapport à une indication
 ;; ## la frequence d'une couleur augmente de 1 si elle est associée à un bad ou un color, et est initialisée à 0 ou reste identique si associée à un good
@@ -76,6 +159,27 @@
             (recur (rest code) (rest vindic) (assoc res (first code) (inc (get res (first code))))))) ;; clé présente dans la map de retour et erreur dans essai, incrémente la valeur de 1
         res))
     nil))
+
+;; # test pour freqs-dispo
+
+(fact "Les fréquences disponibles de `freqs-dispo` sont correctes."
+      (freqs-dispo [:rouge :rouge :bleu :vert :rouge]
+                   [:good :color :bad :good :color])
+      => {:bleu 1, :rouge 2, :vert 0}
+
+      (freqs-dispo [:rouge :rouge :bleu :vert :rouge]
+                   [:good :color :bad :good])
+      => nil
+
+      (freqs-dispo [:rouge :rouge :bleu :vert]
+                   [:good :color :bad :good :color])
+      => nil
+
+      (freqs-dispo [:vert :bleu :violet :rose :orange "bonjour"]
+                   [:good :color :bad :good :color :bad])
+      => {:bleu 1, :violet 1, :vert 0, :rose 0, :orange 1, "bonjour" 1})
+
+
 
 
 ;; ## filtre-indications, filtre l'indication, correspondant à l'essai, par cardinalité, retourne un nouveau vecteur indication
@@ -97,16 +201,51 @@
             (recur (rest code) (rest essai) (rest indic) (assoc freq (first essai) (dec (get freq (first essai)))) (conj res :color))))) ;; cas :color avec fréquence non nul
       res)))
 
-;; ## parseInt, convertit en entier le string donné en entré et le retourne, retourne 0 si l'entré est erroné
+;; # test pour filtre-indications
+
+(fact "Le `filtre-indications` fonctionne bien."
+      (filtre-indications [:rouge :rouge :vert :bleu]
+                          [:vert :rouge :bleu :jaune]
+                          [:color :good :color :bad])
+      => [:color :good :color :bad]
+
+      (filtre-indications [:rouge :vert :rouge :bleu]
+                          [:rouge :rouge :bleu :rouge]
+                          [:good :color :color :color])
+      => [:good :color :color :bad]
+
+      (filtre-indications [:rouge :vert :rouge :orange :vert :violet]
+                          [:rouge :rouge :bleu :rouge :orange :violet]
+                          [:good :color :bad :color :color :good])
+      => [:good :color :bad :bad :color :good])
+
+
+
+
+;; ## parseInt, convertit en entier le string donné en entrée et le retourne, retourne 0 si l'entré est erroné
 
 (declare parse-int)
 (defn parse-int [s]
   (try
     (Integer. (re-find  #"\d+" s ))
-    (catch NumberFormatException e (Integer. 0)))) ;; entré erroné, NumberFormatException, retourne 0
+    (catch NumberFormatException e (Integer. 0)))) ;; entrée erroné, NumberFormatException, retourne 0
+
+;; # test pour parse-int
+
+(fact "parse-int fonctionne bien"
+      (parse-int "grtd45erd7")
+        => 45
+
+      (parse-int "juhzed")
+        => 0
+
+      (parse-int "12")
+        => 12)
 
 
-;; ## color to string, prend un color en entré et retourne le string associé, retourne default si color erroné
+
+
+;; ## color to string, prend un color en entrée et retourne le string associé, retourne default si color erroné
 
 (declare color-to-str)
 
@@ -120,8 +259,19 @@
     :vert "vert"
      "default"))
 
+;; # test pour color-to-str
 
-;; ## str-to-color, prend un string en entré et retourne un color si le string est correct, nil sinon
+(fact "color-to-str retourne bien la bonne chaine"
+      (color-to-str :rouge)
+      => "rouge"
+
+      (color-to-str :violet)
+      => "default")
+
+
+
+
+;; ## str-to-color, prend un string en entrée et retourne un color si le string est correct, nil sinon
 
 (declare str-to-color)
 
@@ -135,7 +285,19 @@
     "vert" :vert
     nil))
 
-;; ## affiche code, affiche le code donné en entré
+;; # test pour str-to-color
+
+(fact "str-to-color retourne bien la bonne couleur/nil"
+      (str-to-color "bleu")
+      => :bleu
+
+      (str-to-color "vertbleurouge")
+      => nil)
+
+
+
+
+;; ## affiche code, affiche le code donné en entrée
 
 (declare affiche-code)
 
@@ -150,7 +312,18 @@
         (recur (rest code)))
       (println "]"))))
 
-;; ## verif-essai, prend un essai en entré et retourne nil si le format est incorrect, sinon retourne l'essai en convertissant les string en "color"
+
+
+;; # test pour affiche-code (qui ne retourne rien)
+
+(fact "affiche-code retourne bien aucune valeur"
+      (affiche-code [:rouge])
+      => nil)
+
+
+
+
+;; ## verif-essai, prend un essai en entrée et retourne nil si le format est incorrect, sinon retourne l'essai en convertissant les string en "color"
 
 (declare verif-essai)
 
@@ -161,6 +334,17 @@
         (recur (rest essai) (conj res (str-to-color (first essai))))
         nil)
       res)))
+
+;; # test pour verif-essai
+
+(fact "verif-essai retourne bien nil ou l'essai convertit en color"
+      (verif-essai ["rouge" "bleu" "vert"])
+      => [:rouge :bleu :vert]
+
+      (verif-essai ["red" "blue"])
+      => nil)
+
+
 
 
 ;; ## demande-essai, demande à l'utilisateur une tentative de combinaison de couleurs et vérifie si le format est valide
@@ -180,6 +364,9 @@
       (do (println "Essai non valide. Réessayez:") ;; cas où l'essai n'est pas de la bonne taille
         (recur (split (read-line) #" "))))))
 
+;; # pas de test pour demande-essai qui demande une entrée utilisateur (read-line)
+
+
 ;; ## correcte, retourne true si l'indication ne contient que des :good (couleur bien placée), faux sinon
 
 (declare correcte)
@@ -191,6 +378,18 @@
         (recur (rest i))
         false) ;; element différent de :good dans indic, retourne false
       true)))
+
+;; # test pour correcte
+
+(fact "correcte fonctionne correctement"
+      (correcte  [:good :good :good])
+      => true
+
+      (correcte [:color :bad :good])
+      => false)
+
+
+
 
 
 ;; ## affiche-indic, permet d'afficher l'indication d'un essai
@@ -211,3 +410,9 @@
           ())
         (recur (rest i)))
       (println "]"))))
+
+;; # test pour affiche-indic (qui ne retourne rien)
+
+(fact "affiche-indic retourne bien aucune valeur"
+      (affiche-indic [:good])
+      => nil)
