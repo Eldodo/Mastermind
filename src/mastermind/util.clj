@@ -35,7 +35,7 @@
       (> (count (filter true? (map not=
                                    (repeatedly 20 #(code-secret 5))
                                    (repeatedly 20 #(code-secret 6))
-                                   (repeatedly 20 #(code-secret 6)))))
+                                   (repeatedly 20 #(code-secret 7)))))
          0)
       => true)
 
@@ -416,3 +416,84 @@
 (fact "affiche-indic retourne bien aucune valeur"
       (affiche-indic [:good])
       => nil)
+
+;; #### suite fonction pour solveur uniquement
+
+;; ## vecset, retourne un vecteur de taille n avec n fois l'ensemble
+;; ## colors (= #{:rouge :bleu :vert :jaune :noir :blanc})
+;; ## colors est défini au début de ce fichier
+
+(declare vecset)
+
+(defn vecset [n]
+  (loop [n n res []]
+    (if (zero? n)
+      res
+      (recur (dec n) (conj res colors)))))
+
+;; # test pour vecset
+
+(fact "vecset fonctionne correctement"
+      (vecset 1)
+      => [colors]
+
+      (vecset 2)
+      => [colors colors])
+
+
+
+
+;; ## solv-essai, prend un vecset en parametre et retourne un essai
+
+(declare solv-essai)
+
+(defn solv-essai [vecset]
+  (loop [vecset vecset res []]
+    (if (seq vecset)
+      (recur (rest vecset) (conj res (rand-nth (seq (first vecset)))))
+      res)))
+
+
+;; # test pour solv-essai
+
+(fact "L'essai est bien composé de couleurs."
+      (every? colors
+              (solv-essai (vecset 4)))
+      => true)
+
+(fact "L'essai est bien composé de couleurs."
+      (every? colors
+              (solv-essai (vecset 8)))
+      => true)
+
+(fact "L'essai a l'air aléatoire."
+      (> (count (filter true? (map not=
+                                   (repeatedly 20 #(solv-essai (vecset 5)))
+                                   (repeatedly 20 #(solv-essai (vecset 6)))
+                                   (repeatedly 20 #(solv-essai (vecset 7))))))
+         0)
+      => true)
+
+
+;; ## majvecset, met à jour un vecset à partir d'un essai, d'une indication et d'une freq-dispo
+
+(declare majvecset)
+
+(defn majvecset [vecset essai indic freqs-disp]
+  (loop [vecset vecset essai essai indic indic fq freqs-disp res []]
+    (if (seq vecset)
+      (if (= (first indic) :good)
+        (recur (rest vecset) (rest essai) (rest indic) fq (conj res (set (keep (first vecset) (first essai))))) ;;cas :good
+        (if (= (first indic) :color)
+          (recur (rest vecset) (rest essai) (rest indic) fq (conj res (set (remove (first essai) (first vecset))))) ;; cas :color
+          ))))) ;; à finir faire le cas bad
+
+
+
+
+
+
+
+
+
+
