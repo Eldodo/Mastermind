@@ -387,19 +387,13 @@
 (declare affiche-indic)
 
 (defn affiche-indic [indic]
-  (print "[")
-  (loop [i indic]
+  (loop [i indic good 0 color 0]
     (if (seq i)
-      (do
         (case (first i) ;; affiche le string correspondant à (first i)
-          :good (print "good")
-          :color (print "color")
-          :bad (print "bad"))
-        (if (seq (rest i))
-          (print " ")
-          ())
-        (recur (rest i)))
-      (println "]"))))
+          :good (recur (rest i) (inc good) color)
+          :color (recur (rest i) good (inc color))
+          :bad (recur (rest i) good color))
+        (println good "couleur(s) bien placée(s) et" color " mal placée(s)"))))
 
 
 
@@ -412,54 +406,61 @@
 
 (declare vecset)
 
-(defn vecset [n]
-  (loop [n n res []]
-    (if (zero? n)
+(defn vecset [taille]
+  (loop [n (- (count colors) 1) res []]
+    (if (= -1 n)
       res
-      (recur (dec n) (conj res colors)))))
+      (recur (dec n) (conj res [(nth (seq colors) n) 0 (vec (take taille (repeat nil)))])))))
 
-;; # test pour vecset
 
-(fact "vecset fonctionne correctement"
-      (vecset 1)
-      => [colors]
-
-      (vecset 2)
-      => [colors colors])
 
 
 
 
 ;; ## solv-essai, prend un vecset en parametre et retourne un essai
 
-(declare solv-essai)
+;(declare solv-essai)
 
-(defn solv-essai [vecset]
-  (loop [vecset vecset res []]
-    (if (seq vecset)
-      (recur (rest vecset) (conj res (rand-nth (seq (first vecset)))))
-      res)))
+;(defn solv-essai [vecset]
+ ; (loop [vecset vecset n 0 occupe [] res []] ;; n = nombre de couleurs deja placées et occupe = vecteur des incides occupes de res
+   ;  (if (= n (count vecset))
+    ;  res
+    ;  (if (seq vecset)
+     ;   (let [color (first (first vecset))
+     ;         tab (rest (rest (first vecset)))]
+      ;    (loop [tabColor tab, placeeIndice [] ind 0 nbplaced 0]
+      ;      (if (= (+ n nbplaced) (count vecset))
+      ;        (conj res {color placeeIndice})
+
+        ;      (do
+        ;        (if (seq tab)
+           ;       (if (or (= (first tab) nil) (= (first tab) true))
+           ;         (recur (rest tab) (conj placeeIndice ind) (inc ind) (inc nbplaced))
+           ;         (recur (rest tab) placeeIndice (inc ind)))
+            ;      (recur (rest vecset) (+ n nbplaced)
+
+
 
 
 ;; # test pour solv-essai
 
-(fact "L'essai est bien composé de couleurs."
-      (every? colors
-              (solv-essai (vecset 4)))
-      => true)
+;(fact "L'essai est bien composé de couleurs."
+;      (every? colors
+;              (solv-essai (vecset 4)))
+;      => true)
 
-(fact "L'essai est bien composé de couleurs."
-      (every? colors
-              (solv-essai (vecset 8)))
-      => true)
+;(fact "L'essai est bien composé de couleurs."
+;      (every? colors
+;              (solv-essai (vecset 8)))
+;      => true)
 
-(fact "L'essai a l'air aléatoire."
-      (> (count (filter true? (map not=
-                                   (repeatedly 20 #(solv-essai (vecset 5)))
-                                   (repeatedly 20 #(solv-essai (vecset 6)))
-                                   (repeatedly 20 #(solv-essai (vecset 7))))))
-         0)
-      => true)
+;(fact "L'essai a l'air aléatoire."
+;      (> (count (filter true? (map not=
+;                                   (repeatedly 20 #(solv-essai (vecset 5)))
+ ;                                  (repeatedly 20 #(solv-essai (vecset 6)))
+ ;                                  (repeatedly 20 #(solv-essai (vecset 7))))))
+   ;      0)
+  ;    => true)
 
 
 
@@ -491,7 +492,6 @@
          (do
            (println "Code non valide. Réessayez:")
            (recur (split (read-line) #" ")))))));; code non valide demande une nouvelle saisie
-
 
 
 
