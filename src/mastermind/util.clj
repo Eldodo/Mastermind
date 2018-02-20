@@ -1,6 +1,6 @@
 (ns mastermind.util
   (:gen-class)
- (:use [clojure.string :only (split)])
+  (:use [clojure.string :only (split)])
   (:use [midje.sweet]))
 
 
@@ -43,6 +43,8 @@
 
 
 ;; ## contient?, retourne true si elt est dans v, false sinon
+
+(declare contient?)
 
 (defn contient? [v elt]
   (loop [v v]
@@ -397,8 +399,10 @@
 
 
 
+;; ################################################
+;; #### suite : fonctions pour solveur uniquement #
+;; ################################################
 
-;; #### suite : fonctions pour solveur uniquement
 
 ;; ## vecset, retourne un vecteur de taille n avec n fois l'ensemble colors
 ;; ## colors = #{:rouge :bleu :vert :jaune :noir :blanc}
@@ -410,60 +414,47 @@
   (loop [n (- (count colors) 1) res []]
     (if (= -1 n)
       res
-      (recur (dec n) (conj res [(nth (seq colors) n) 0 (vec (take taille (repeat nil)))])))))
+      (recur (dec n) (conj res [0 (nth (seq colors) n) 0 (vec (take taille (repeat 0)))])))))
+;;conj [int=0 "une couleur" int=0 [vecteur de la taille du code à trouver initialisé à 0]
+;;premier int=0: couleur non encore testé, 1:couleur testée et présente dans le code, 2 couleur (testé ou pas) non présente
+;;"une couleur" la couleur associée
+;;second int: nombre d'occurence de la couleur dans le code
+;;[vecteur] représente les positions potentielles de la couleur [0=non testé, 1=à determiner, 2=bonne position
+;;3=mauvaise position]
 
 
+(fact "vecset génére bien ce qu'on veut pour un code de taille n"
+      (vecset 4)
+      => [[0 :blanc 0 [0 0 0 0]] [0 :vert 0 [0 0 0 0]] [0 :noir 0 [0 0 0 0]]
+          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]]
+      (vecset 2)
+      => [[0 :blanc 0 [0 0]] [0 :vert 0 [0 0]] [0 :noir 0 [0 0]]
+          [0 :bleu 0 [0 0]] [0 :rouge 0 [0 0]] [0 :jaune 0 [0 0]]])
 
-
+(nth (nth (nthrest (first (nthrest [[0 :blanc 0 [0 0]] [0 :vert 0 [0 0]] [0 :noir 0 [0 2]]
+          [0 :bleu 0 [0 0]] [0 :rouge 0 [0 0]] [0 :jaune 0 [0 0]]] 2)) 3) 0) 1)
 
 
 ;; ## solv-essai, prend un vecset en parametre et retourne un essai
 
-;(declare solv-essai)
+(declare solv-essai)
 
-;(defn solv-essai [vecset]
- ; (loop [vecset vecset n 0 occupe [] res []] ;; n = nombre de couleurs deja placées et occupe = vecteur des incides occupes de res
-   ;  (if (= n (count vecset))
-    ;  res
-    ;  (if (seq vecset)
-     ;   (let [color (first (first vecset))
-     ;         tab (rest (rest (first vecset)))]
-      ;    (loop [tabColor tab, placeeIndice [] ind 0 nbplaced 0]
-      ;      (if (= (+ n nbplaced) (count vecset))
-      ;        (conj res {color placeeIndice})
+(defn solv-essai [vecset indiceCorrect taille]
+  (loop [vecs vecset i 0 res [] nieme 0] ;; i = indice de la couleurs à placer, nieme = nieme couleur de vecs a tester
+    (if (= i taille)
+      res
 
-        ;      (do
-        ;        (if (seq tab)
-           ;       (if (or (= (first tab) nil) (= (first tab) true))
-           ;         (recur (rest tab) (conj placeeIndice ind) (inc ind) (inc nbplaced))
-           ;         (recur (rest tab) placeeIndice (inc ind)))
-            ;      (recur (rest vecset) (+ n nbplaced)
+      (if (contains? indiceCorrect i)
+        (recur vecs (inc i) (conj res (get indiceCorrect i))  nieme);; on connait déjà la couleur présente à cet indice
+        (case (first (first (nthrest vecs nieme)))
+          0 (recur vecs (inc i) (conj res (second (first (nthrest vecs nieme)))) nieme)
+          1 (if (> 3 (nth (nth (nthrest (first (nthrest vecs nieme)) 3) 0) i))
+              (recur vecs (inc i) (conj res (second (first (nthrest vecs nieme)))) nieme)
+              (recur vecs i res  (mod (inc nieme) taille) ))
+          2 (recur vecs i res (mod (inc nieme) taille)))))))
 
-
-
-
-;; # test pour solv-essai
-
-;(fact "L'essai est bien composé de couleurs."
-;      (every? colors
-;              (solv-essai (vecset 4)))
-;      => true)
-
-;(fact "L'essai est bien composé de couleurs."
-;      (every? colors
-;              (solv-essai (vecset 8)))
-;      => true)
-
-;(fact "L'essai a l'air aléatoire."
-;      (> (count (filter true? (map not=
-;                                   (repeatedly 20 #(solv-essai (vecset 5)))
- ;                                  (repeatedly 20 #(solv-essai (vecset 6)))
- ;                                  (repeatedly 20 #(solv-essai (vecset 7))))))
-   ;      0)
-  ;    => true)
-
-
-
+;(solv-essai [[1 :blanc 1 [3 3 3 1]] [2 :vert 0 [3 3 3 3]] [1 :noir 0 [3 3 3 3]]
+;          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [1 :jaune 1 [3 3 1 3]]] {3 :blanc, 2 :jaune} 4)
 
 ;; ## majvecset, met à jour un vecset à partir d'un essai, d'une indication et d'une freq-dispo
 
@@ -492,9 +483,6 @@
          (do
            (println "Code non valide. Réessayez:")
            (recur (split (read-line) #" ")))))));; code non valide demande une nouvelle saisie
-
-
-
 
 
 
