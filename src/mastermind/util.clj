@@ -404,9 +404,7 @@
 ;; ################################################
 
 
-;; ## vecset, retourne un vecteur de taille n avec n fois l'ensemble colors
-;; ## colors = #{:rouge :bleu :vert :jaune :noir :blanc}
-;; ## colors est défini au début de ce fichier
+;; ## vecset, retourne un vecteur de taille n
 
 (declare vecset)
 
@@ -444,6 +442,12 @@
         (recur (rest v) (dec i) (conj res (first v))))
       res)))
 
+(fact "assocVec modifie bien le nombre d'occurence de la i-ième couleur de v"
+      (assocVec [[0 :blanc 0 [0 0 0 0]] [0 :vert 0 [0 0 0 0]] [0 :noir 0 [0 0 0 0]]
+          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]] 2 3)
+
+      => [[0 :blanc 0 [0 0 0 0]] [0 :vert 0 [0 0 0 0]] [0 :noir 3 [0 0 0 0]]
+          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]])
 
 ;; ## getNbOcc retourne le nombre d'occurence d'une couleur dans le code
 
@@ -455,9 +459,14 @@
       (nth (first v) 2)
       (recur (rest v) (dec i)))))
 
+(fact "getNbOcc retourne bien le nombre d'occurence de la i-ième couleur de v"
+      (getNbOcc  [[2 :blanc 0 [0 0 0 0]] [2 :vert 0 [0 0 0 0]] [1 :noir 3 [0 0 0 0]]
+          [2 :bleu 0 [0 0 0 0]] [2 :rouge 0 [0 0 0 0]] [1 :jaune 1 [0 0 0 0]]]  2)
+      => 3)
 
 
 ;; ## getCode retourne le code correpond à la map donnée en paramètre
+;; map de la forme {indice0 :color, indice1 :color}
 
 (declare getCode)
 
@@ -466,6 +475,10 @@
     (if (= taille i)
       res
       (recur s (inc i) (conj res (get s i))))))
+
+(fact "getCode retourne bien le code correspondant à s"
+      (getCode {0 :blanc, 1 :noir, 3 :rouge, 2 :vert} 4)
+      => [:blanc :noir :vert :rouge])
 
 ;; ## getPositionValide retourne le premier indice où on peut mettre la couleur
 
@@ -484,6 +497,18 @@
               (recur vect (inc ind))))))
       (recur (rest v) (dec i)))))
 
+(fact "retourne bien le premier indice valide"
+      (getPositionValide (vecset 4) 1 #{} 4)
+      => 0
+      (getPositionValide (vecset 4) 1 #{0 1} 4)
+      => 2
+      (getPositionValide [[2 :blanc 0 [0 0 0 0]] [1 :vert 2 [3 3 2 2]] [1 :noir 1 [0 0 0 0]]
+          [2 :bleu 0 [0 0 0 0]] [2 :rouge 0 [0 0 0 0]] [1 :jaune 2 [0 0 0 0]]] 1 #{} 4)
+      => 2
+      (getPositionValide [[2 :blanc 0 [0 0 0 0]] [1 :vert 2 [3 3 2 2]] [1 :noir 1 [0 0 0 0]]
+          [2 :bleu 0 [0 0 0 0]] [2 :rouge 0 [0 0 0 0]] [1 :jaune 2 [0 0 0 0]]] 1 #{2} 4)
+      => 3)
+
 ;; ## getIndication retourne le nombre de couleurs bien placées et mal placées
 
 (declare get-indic)
@@ -497,36 +522,10 @@
           :bad (recur (rest i) good color))
         [good color])))
 
+(fact "get-indic retourne bien le nombre de couleurs bien placées et mal placées"
+      (get-indic [:bad :good :color :color])
+      => [1 2])
 
-;; ## solv-essai, prend un vecset en parametre et retourne un essai
-
-(declare solv-essai)
-
-(defn solv-essai [vecset taille]
-  (loop [vecs vecset, i 0, setRes {}, ensOccupe #{},nieme 0]
-    (if (= i taille)
-      (getCode setRes taille)
-      (case (first (first (nthrest vecs nieme)))
-        0 (do
-            (let [pos (getPositionValide vecset nieme ensOccupe taille)]
-            (recur vecs (inc i) (conj setRes [pos (second (first (nthrest vecs nieme)))]) (conj ensOccupe pos) nieme)))
-        1 (do
-            (let [nbOcc (getNbOcc vecs nieme)]
-              (if (zero? nbOcc)
-                (recur vecs i setRes ensOccupe (mod (inc nieme) (count colors)))
-                (let [pos (getPositionValide vecset nieme ensOccupe taille)]
-                  (if (= nbOcc 1)
-                    (recur (assocVec vecs nieme (dec nbOcc)) (inc i) (conj setRes [pos (second (first (nthrest vecs nieme)))]) (conj ensOccupe pos) (mod (inc nieme) (count colors)))
-                    (recur (assocVec vecs nieme (dec nbOcc)) (inc i) (conj setRes [pos (second (first (nthrest vecs nieme)))]) (conj ensOccupe pos) nieme))))))
-        2 (recur vecs i setRes ensOccupe (mod (inc nieme) (count colors)))))))
-
-(solv-essai [[1 :blanc 2 [0 0 0 0]] [0 :vert 0 [0 0 0 0]] [0 :noir 0 [0 0 0 0]]
-          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]] 4)
-
-
-
-
-;(solvv-essai (vecset 4) 4)
 
 ;; ## getIndexOfColorInVecset : retourne l'indice de la couleur color dans vecset
 
@@ -538,6 +537,116 @@
       i
       (recur (inc i) (rest v)))))
 
+(fact "retourne bien l'indice de la couleur dans le vecteur donnée"
+      (getIndexOfColorInVecset :bleu [[0 :blanc 0 [0 0]] [0 :vert 0 [0 0]] [0 :noir 0 [0 0]]
+          [0 :bleu 0 [0 0]] [0 :rouge 0 [0 0]] [0 :jaune 0 [0 0]]])
+      => 3
+      (getIndexOfColorInVecset :bleu [[0 :blanc 0 [0 0]] [0 :vert 0 [0 0]] [0 :noir 0 [0 0]]
+          [0 :jaune 0 [0 0]] [0 :rouge 0 [0 0]] [0 :bleu 0 [0 0]]])
+      => 5)
+
+
+;; ## conjPoscol, associe à l'indice ind du code les couleurs possibles, retourne le vecteur contenant ces couleurs
+
+(declare conjPoscol)
+
+(defn conjPoscol [vecset ind]
+  (loop [vecs vecset res []]
+    (if (seq vecs)
+      (if (> 2 (first (first vecs)))
+        (if (> 3 (nth (nth (first vecs) 3) ind))
+          (recur (rest vecs) (conj res (second (first vecs))))
+          (recur (rest vecs) res))
+        (recur (rest vecs) res))
+      res)))
+
+(fact "conjPoscol associe bien des couleurs valide pour l'indice correspondant"
+      (conjPoscol  [[0 :blanc 0 [0 0 0 0]] [0 :vert 0 [0 0 0 0]] [0 :noir 0 [0 0 0 0]]
+          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]] 1)
+      => [:blanc :vert :noir :bleu :rouge :jaune]
+      (conjPoscol [[0 :blanc 0 [3 0]] [0 :vert 0 [1 0]] [0 :noir 0 [1 0]]
+          [0 :bleu 0 [3 0]] [0 :rouge 0 [3 0]] [0 :jaune 0 [1 0]]] 0)
+      => [:vert :noir :jaune])
+
+
+;; ## mapPosCol, retourne une map qui à chaque indice du code associe les couleurs possibles
+
+(declare mapPosCol)
+
+(defn mapPosCol [vecset taille]
+  (loop [vecset vecset i 0 res {}]
+    (if (= taille i)
+      res
+      (recur vecset (inc i) (conj res [i (conjPoscol vecset i)])))))
+
+
+(fact "la map retournée est correct"
+      (mapPosCol [[0 :blanc 0 [3 0]] [0 :vert 0 [1 0]] [0 :noir 0 [1 0]]
+          [0 :bleu 0 [3 0]] [0 :rouge 0 [3 0]] [0 :jaune 0 [1 0]]] 2)
+      =>{0 [:vert :noir :jaune], 1 [:blanc :vert :noir :bleu :rouge :jaune]})
+
+
+
+;; getEssai, retourne un essai "aléatoire" avec mapPosCol, l'essai ne contient que les couleurs du code
+
+(declare getEssai)
+
+(defn getEssai [vecset mapPos taille]
+  (loop [vecs vecset mP mapPos i 0 res []]
+    (if (= i taille)
+      res
+      (do
+        (let [col (rand-nth (get mP i))
+              index (getIndexOfColorInVecset col vecs)
+              nbOcc (getNbOcc vecs index)]
+          (if (zero? nbOcc) ;; essai invalide on recommence
+            (recur vecset mapPos 0 [])
+            (recur (assocVec vecs index (dec nbOcc)) mP (inc i) (conj res col))))))))
+
+
+;; ## getNbConnu, retourne le nombre de couleur connu du code
+
+(declare getNbConnu)
+
+(defn getNbConnu [vecset]
+  (loop [v vecset res 0]
+    (if (seq v)
+      (if (= 1 (first (first v)))
+        (recur (rest v) (+ res (nth (first v) 2))) ;; ajoute au résultat le nombre d'occurence d'une couleur présente dans le code
+        (recur (rest v) res))
+      res)))
+
+(fact "getNbConnu retourne bien le nombre de couleur connu du code"
+      (getNbConnu (vecset 4))
+      => 0
+      (getNbConnu [[1 :blanc 2 [1 1 1 1]] [1 :vert 1 [1 1 1 1]] [0 :noir 0 [0 0 0 0]]
+          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]])
+      => 3)
+
+;; ## solv-essai, prend un vecset en parametre et retourne un essai
+
+(declare solv-essai)
+
+(defn solv-essai [vecset taille]
+  (if (= taille (getNbConnu vecset))
+    (getEssai vecset (mapPosCol vecset taille) taille) ;; on connait toute les couleurs du code -> essai "aléatoire"
+    (loop [vecs vecset, i 0, setRes {}, ensOccupe #{},nieme 0]
+      (if (= i taille)
+        (getCode setRes taille)
+        (case (first (first (nthrest vecs nieme)))
+          0 (do ;; cas couleur non testée -> on remplit le reste de l'essai avec cette couleur
+              (let [pos (getPositionValide vecset nieme ensOccupe taille)]
+              (recur vecs (inc i) (conj setRes [pos (second (first (nthrest vecs nieme)))]) (conj ensOccupe pos) nieme)))
+          1 (do ;; cas couleur déjà testée et présente, on la place dans le code à des positions valides (* son nombre d'occurence)
+              (let [nbOcc (getNbOcc vecs nieme)]
+                (if (zero? nbOcc)
+                  (recur vecs i setRes ensOccupe (mod (inc nieme) (count colors)));; la couleur a été placée "son nombre d'occurence" fois, on passe à la couleur suivante
+                  (let [pos (getPositionValide vecset nieme ensOccupe taille)]
+                    (if (= nbOcc 1)
+                      (recur (assocVec vecs nieme (dec nbOcc)) (inc i) (conj setRes [pos (second (first (nthrest vecs nieme)))]) (conj ensOccupe pos) (mod (inc nieme) (count colors)))
+                      (recur (assocVec vecs nieme (dec nbOcc)) (inc i) (conj setRes [pos (second (first (nthrest vecs nieme)))]) (conj ensOccupe pos) nieme))))))
+                      ;; (assocVec vecs nieme (dec nbOcc)) diminue de 1 le nombre d'occurence de la couleur dans vecset
+          2 (recur vecs i setRes ensOccupe (mod (inc nieme) (count colors)))))))) ;; cas couleur non présente dans le code, on passe à la couleur suivante
 
 
 ;; ## setFalseCol, modifie vecset pour indiquer que la couleur à l'indice donné n'est pas dans le code
@@ -552,11 +661,19 @@
         (recur (rest v) (inc i) (conj res (assoc (first v) 0 2)))
         (recur (rest v) (inc i) (conj res (first v)))))))
 
+
+(fact "setFalseCol fonctionne correctement"
+      (setFalseCol [[1 :blanc 2 [1 1 1 1]] [1 :vert 1 [1 1 1 1]] [0 :noir 0 [0 0 0 0]]
+          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]] 2 6)
+
+      => [[1 :blanc 2 [1 1 1 1]] [1 :vert 1 [1 1 1 1]] [2 :noir 0 [0 0 0 0]]
+          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]])
+
 ;; ## setFalsePosIndCol, modifie vecset pour indiquer que la couleur n'est pas à l'indice indiqué dans le code
 
 (declare setFalsePosIndCol)
 
-(defn setFalsePosIndCol [vecset indVec indFalseCol taille]
+(defn setFalsePosIndCol [vecset indVec indFalseCol taille];; indVec : indice dans vecset, indFalseCol indice incorrect dans le code pour la couleur
   (loop [v vecset i 0 res []]
     (if (= taille i)
       res
@@ -564,18 +681,12 @@
         (recur (rest v) (inc i) (conj res [(first (first v)) (second (first v)) (second (rest (first v))) (assoc (nth (first v) 3) indFalseCol 3)]))
         (recur (rest v) (inc i) (conj res (first v)))))))
 
+(fact "setFalsePosIndCol fonctionne correctement"
+      (setFalsePosIndCol [[1 :blanc 2 [1 1 1 1]] [1 :vert 1 [1 1 1 1]] [0 :noir 0 [0 0 0 0]]
+          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]] 2 3 6)
 
-;; ## setGoodPosIndCol, modifie vecset pour indiquer que la couleur n'est pas à l'indice indiqué dans le code
-
-(declare setGoodPosIndCol)
-
-(defn setGoodPosIndCol [vecset indVec indGoodCol taille]
-  (loop [v vecset i 0 res []]
-    (if (= taille i)
-      res
-      (if (= indVec i)
-        (recur (rest v) (inc i) (conj res [(first (first v)) (second (first v)) (second (rest (first v))) (assoc (nth (first v) 3) indGoodCol 2)]))
-        (recur (rest v) (inc i) (conj res (first v)))))))
+      => [[1 :blanc 2 [1 1 1 1]] [1 :vert 1 [1 1 1 1]] [0 :noir 0 [0 0 0 3]]
+          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]])
 
 
 ;; ## setFalsePos, modifie vecset pour indiquer que les positions des couleurs de l'essai sont fausses
@@ -588,30 +699,15 @@
         (recur (setFalsePosIndCol v (getIndexOfColorInVecset (first ess) v) indice (count colors)) (rest ess) (inc indice))
         v)))
 
-;; ## setGoodPos modifie vecset pour indiquer que les positions des couleurs de l'essai sont correctes
+(fact "setFalsePos fonctionne correctement"
+      (setFalsePos [[0 :blanc 0 [0 0 0 0]] [0 :vert 0 [0 0 0 0]] [0 :noir 0 [0 0 0 0]]
+          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]] [:bleu :blanc :vert :rouge])
 
-(declare setGoodPos)
-
-(defn setGoodPos [vecset essai]
-  (loop [v vecset ess essai indice 0]
-    (if (seq ess)
-        (recur (setGoodPosIndCol v (getIndexOfColorInVecset (first ess) v) indice (count colors)) (rest ess) (inc indice))
-        v)))
-
-;; ## getNbConnu
-
-(declare getNbConnu)
-
-(defn getNbConnu [vecset]
-  (loop [v vecset res 0]
-    (if (seq v)
-      (if (= 1 (first (first v)))
-        (recur (rest v) (+ res (nth (first v) 2)))
-        (recur (rest v) res))
-      res)))
+      => [[0 :blanc 0 [0 3 0 0]] [0 :vert 0 [0 0 3 0]] [0 :noir 0 [0 0 0 0]]
+          [0 :bleu 0 [3 0 0 0]] [0 :rouge 0 [0 0 0 3]] [0 :jaune 0 [0 0 0 0]]])
 
 
-;; ## getSetColConnu
+;; ## getSetColConnu, retourne l'ensemble des couleurs connu du code
 
 (declare getSetColConnu)
 
@@ -623,31 +719,55 @@
         (recur (rest v) res))
       res)))
 
+(fact "getSetColConnu fonctionne correctement"
+      (getSetColConnu [[1 :blanc 0 [0 0 0 0]] [2 :vert 0 [0 0 0 0]] [2 :noir 0 [0 0 0 0]]
+          [0 :bleu 0 [0 0 0 0]] [1 :rouge 0 [0 0 0 0]] [1 :jaune 0 [0 0 0 0]]])
+      => #{:blanc :rouge :jaune})
+
+
+
 ;; ## setColTestee ; modifie vecset pour indiquer que la couleur correspondante a été testé et est présente nb fois dans le code
 
 (declare setColTestee)
 
-(defn setColTestee [vecset indVec nb taille] (println nb)
+(defn setColTestee [vecset indVec nb taille];; indVec : indice dans vecset
    (loop [v vecset i 0 res []]
      (if (= taille i)
        res
        (if (= indVec i)
          (do
-           (let [vtmp (assoc (first v) 2 nb)]
-           (recur (rest v) (inc i) (conj res (assoc vtmp 0 1)))))
+           (let [vtmp (assoc (first v) 2 nb)] ;; assoc indique ici : présente nb fois
+           (recur (rest v) (inc i) (conj res (assoc vtmp 0 1))))) ;; assoc indique ici : couleur testée et présente dans le code
          (recur (rest v) (inc i) (conj res (first v)))))))
 
+(fact "setColTestee fonctionne correctement"
+      (setColTestee [[0 :blanc 0 [0 0 0 0]] [0 :vert 0 [0 0 0 0]] [0 :noir 0 [0 0 0 0]]
+          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]] 0 2 6)
+
+      => [[1 :blanc 2 [0 0 0 0]] [0 :vert 0 [0 0 0 0]] [0 :noir 0 [0 0 0 0]]
+          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]])
 
 
-;; ## setWhichColTestee ; modifie vecset pour indiquer que la couleur correspondante a été testé et est présente nb fois dans le code
+
+
+;; ## setWhichColTestee ; modifie vecset pour indiquer qu'une nouvelle couleur a été testé et est présente nb fois dans le code
 
 (declare setWhichColTestee)
 
 (defn setWhichColTestee [vecset nb setColConnu essai]
   (loop [ess essai]
-    (if (contains? setColConnu (first ess))
+    (if (contains? setColConnu (first ess)) ;; la nouvelle couleur n'est pas déjà connu,
       (recur (rest ess))
-      (setColTestee vecset (getIndexOfColorInVecset (first ess) vecset) nb (count colors)))))
+      (setColTestee vecset (getIndexOfColorInVecset (first ess) vecset) nb (count colors))))) ;; on a trouvé la couleur non connue et testée
+
+(fact "setWhichColTestee fonctionne correctement"
+      (setWhichColTestee [[1 :blanc 1 [0 0 0 0]] [0 :vert 0 [0 0 0 0]] [0 :noir 0 [0 0 0 0]]
+          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]] 1 #{:blanc} [:blanc :vert :vert :vert])
+
+      =>[[1 :blanc 1 [0 0 0 0]] [1 :vert 1 [0 0 0 0]] [0 :noir 0 [0 0 0 0]]
+          [0 :bleu 0 [0 0 0 0]] [0 :rouge 0 [0 0 0 0]] [0 :jaune 0 [0 0 0 0]]])
+
+
 
 
 ;; ## majvecset, met à jour un vecset à partir d'un essai et de deux indications (nbGood nbColor)
@@ -656,29 +776,19 @@
 
 (defn majvecset [vecset essai nbGood nbColor taille nbConnu setColConnu] ;; nbConnu : nombre de couleurs déjà détérminé
   (if (zero? (+ nbGood nbColor))
-    (setFalseCol vecset (getIndexOfColorInVecset (first essai) vecset) (count colors))
+    (setFalseCol vecset (getIndexOfColorInVecset (first essai) vecset) (count colors)) ;; cas aucune couleur de l'essai n'est dans le code
     (if (= nbConnu (+ nbGood nbColor))
       (loop [v vecset ess essai]
         (if (seq ess)
           (if (contains? setColConnu (first ess))
-            (recur v (rest ess))
-            (recur (setFalseCol v (getIndexOfColorInVecset (first ess) v) (count colors)) (rest ess)))
+            (recur v (rest ess)) ;; couleur présente dans le code
+            (recur (setFalseCol v (getIndexOfColorInVecset (first ess) v) (count colors)) (rest ess))) ;; couleur non présente dans le code
           (if (zero? nbGood)
-            (setFalsePos v essai)
-            (if (zero? nbColor)
-              (setGoodPos v essai)
-              (do
-
-                v)))))
+            (setFalsePos v essai) ;; aucune couleur bien placée
+            v)))
       (if (zero? nbConnu)
-        (setColTestee vecset (getIndexOfColorInVecset (first essai) vecset) (+ nbGood nbColor) (count colors))
-        (setWhichColTestee vecset (- (+ nbGood nbColor) nbConnu) setColConnu essai)))))
-
-
-
-
-
-
+        (setColTestee vecset (getIndexOfColorInVecset (first essai) vecset) (+ nbGood nbColor) (count colors)) ;; première couleur trouvée
+        (setWhichColTestee vecset (- (+ nbGood nbColor) nbConnu) setColConnu essai))))) ;; nouvelle couleur trouvée
 
 
 
