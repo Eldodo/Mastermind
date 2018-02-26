@@ -806,6 +806,41 @@
            (println "Code non valide. Réessayez:")
            (recur (split (read-line) #" ")))))));; code non valide demande une nouvelle saisie
 
+;; fonctions non utilisées qui sont censé générer l'ensemble des permutations d'un vetceur
+;; WIP
+
+(defn inject [deb elt fin]
+  (lazy-cat deb (conj fin elt)))
+
+(defn permut-1
+  ([elt s]
+   (lazy-seq (cons (inject '() elt s) (permut-1 [(first s)] elt (rest s)))))
+  ([deb elt fin]
+   (if (seq fin)
+     (lazy-seq (cons (inject deb elt fin) (permut-1 (lazy-cat deb [(first fin)]) elt (rest fin))))
+     (lazy-seq (cons (inject deb elt '()) ())))))
+
+(defn permut-2 [elt seqseq]
+  (if (seq seqseq)
+    (lazy-cat (permut-1 elt (first seqseq)) (permut-2 elt (rest seqseq)))))
+
+(count (permut-2 1 '((2 3 4) (2 4 3) (3 2 4) (3 4 2) (4 2 3) (4 3 2))))
+
+(defn permut
+  ([v]
+   (if (seq v)
+    (lazy-cat (permut-2 (nth v 0) (permut (nthrest v 1))) (permut 1 v))
+     ()))
+  ([i v]
+   (if (< i (count v))
+     (lazy-cat (permut-2 (nth v i) (permut (concat (subvec (vec v) 0 i) (nthrest v (inc i))))) (permut (inc i) v))
+     ())))
+
+(take 10 (permut [1 2 3 4]))
+
+
+
+
 
 
 
